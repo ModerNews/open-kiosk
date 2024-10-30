@@ -60,6 +60,7 @@ fi
 
 # Install dependencies
 apt-get install -y \
+    xinput \
     i3 \
     unclutter \
     chromium \
@@ -129,7 +130,9 @@ case $web_filtering_policy in
         read -a whitelist_urls
         ;;
     3)
-        echo "Custom web filtering enabled. Paste your custom policy to /home/kiosk/.kiosk/web_filtering_policy.json."
+        echo "
+        Currently broken, please paste your custom policy directly to /etc/chromium/policies/managed/
+        "
         ;;
     *)
         echo "Invalid option, no web filtering policies enabled."
@@ -158,11 +161,12 @@ if [ -L "$POLICY_TARGET/$POLICY_FILE" ]; then
 fi
 
 # Generate web filtering policy file
+# NOTE: Maybe add predefined exceptions, like chrome://, etc. 
 echo "{
-    \"UrlBlockList\": [
+    \"URLBlockList\": [
         \"$(IFS=\",\ \"; echo "${blacklist_urls[*]}")\"
     ],
-    \"UrlAllowList\": [
+    \"URLAllowList\": [
         \"$(IFS=\",\ \"; echo "${whitelist_urls[*]}")\"
     ]
 }" >| "$POLICY_SOURCE/$POLICY_FILE"
@@ -172,14 +176,36 @@ chown $USER:kiosk "$POLICY_SOURCE/$POLICY_FILE"
 
 # Create symlink to web filtering policy
 mkdir -p /etc/chromium/policies/managed
-ln -s "$POLICY_SOURCE/$POLICY_FILE" "$POLICY_TARGET/$POLICY_FILE"
+# DEPRECATED: Has to be regular file
+# ln -s "$POLICY_SOURCE/$POLICY_FILE" "$POLICY_TARGET/$POLICY_FILE
+# NOTE: Maybe copy file on each boot of i3wm, instead of once during installation?
+cp "$POLICY_SOURCE/$POLICY_FILE" "$POLICY_TARGET/$POLICY_FILE"
 
 # Copy custom i3 config for user
 # Assumes CWD is the root of the git repo
 mkdir -p /home/kiosk/.config/i3 && chown -R kiosk:kiosk /home/kiosk 
+
+
+# FIX: For some god forsaken reason, the touchscreen name has a \^M in the middle, idk how to automate over it
+# 
+# echo "Select your touchscreen device:"
+# xinput list
+# read -p "Enter touchscreen device name (or empty to skip touchscreen configuration): " touchscreen_device
+#
+# if [[ -n $touchscreen_device ]]; then
+#     echo "[0] Portrait Left"
+#     echo "[1] Portrait Right"
+#     echo "[2] Landscape"
+#     echo "[3] Landscape (flipped)"
+#     read -p "Select screen orientation: [0-3]" screen_orientation
+#     
+#     sed -i 's/<touchscreen-name>/$touchscreen_device/g' ./i3/set-rotation.sh
+#     sed -i 's/# exec --no-startup-id ~/.config/i3/set-rotation.sh/exec --no-startup-id ~/.config/i3/set-rotation.sh $screen_orientation/g' ./i3/config
+# fi
+
 cp -r ./i3 /home/kiosk/.config
 chown -R $USER:kiosk /home/kiosk/.config/i3
-chmod -R 755 /home/kiosk/.config/i3
+chmod -R 755' /home/kiosk/.config/i3
 
 read -p "Installation complete. Proceed with rebooting the system? [y/n]" reboot_bool
 case $reboot_bool in

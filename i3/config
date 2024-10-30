@@ -137,6 +137,8 @@ bar {
 
 bindsym $mod+q pkexec sh -c "i3-msg exit"
 
+# exec --no-startup-id ~/.config/i3/set-rotation.sh
+
 # Start policykit agent
 exec --no-startup-id /usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1 &
 
